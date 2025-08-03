@@ -1,3 +1,8 @@
+EasyRPG Player (with unofficial binaries for Windows ARM64/AArch64, fork of [EasyRPG/Player](https://github.com/EasyRPG/Player)).  
+Downloads are hosted at the [releases](https://github.com/theinstantmatrix/EasyRPG-Player/releases) section.
+
+---
+
 # EasyRPG Player
 
 EasyRPG Player is a game interpreter to play RPG Maker 2000, 2003 and EasyRPG

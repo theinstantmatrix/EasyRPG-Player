@@ -1,0 +1,92 @@
+name: Build EasyRPG Player (Windows ARM64/AArch64)
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: windows-11-arm
+    steps:
+      - name: 'Configure git: core.autocrlf, core.eol'
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+      - uses: actions/checkout@v4
+        with:
+          path: Player
+      - uses: actions/checkout@v4
+        with:
+          repository: fragglet/lhasa
+          path: lhasa
+      - uses: actions/checkout@v4
+        with:
+          repository: Mindwerks/wildmidi
+          path: wildmidi
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANGARM64
+          update: true
+          pacboy: >-
+            autotools:p
+            cmake:p
+            expat:p
+            fluidsynth:p
+            fmt:p
+            freetype:p
+            harfbuzz:p
+            icu:p
+            libinih:p
+            liblcf:p
+            libpng:p
+            libsndfile:p
+            libvorbis:p
+            libxmp:p
+            mpg123:p
+            ninja:p
+            nlohmann-json:p
+            opusfile:p
+            pixman:p
+            SDL2:p
+            speexdsp:p
+            toolchain:p
+      - name: Build and install lhasa
+        shell: msys2 {0}
+        run: |
+          cd lhasa
+          ./autogen.sh
+          mingw32-make
+          mingw32-make install
+      - name: Build and install wildmidi
+        shell: msys2 {0}
+        run: |
+          cd wildmidi
+          cmake -B build -S . -DCMAKE_INSTALL_PREFIX="$MSYSTEM_PREFIX"
+          cmake --build build
+          cmake --install build
+      - name: Apply workarounds
+        shell: msys2 {0}
+        run: |
+          # Non-existent file (caused by e1d8219)
+          cp Player/resources/windows/player.manifest Player/resources/windows/player.xml
+      - name: Build
+        shell: msys2 {0}
+        run: |
+          cd Player
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - name: Copy files
+        shell: msys2 {0}
+        run: |
+          cd Player/build
+          mkdir upload
+          cp Player.exe upload
+          for i in $(ldd Player.exe | cut -d '>' -f 2 | grep $MSYSTEM_PREFIX/bin | awk '{print $1}'); do [ -f "${i}" ] && cp "${i}" upload; done
+          strip upload/Player.exe
+      - name: Upload as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: easyrpg-player-git-${{github.sha}}-windows-arm64
+          path: Player/build/upload
+          if-no-files-found: error
